@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/walkline/shippingpg/clientapi"
+	"google.golang.org/grpc/status"
 )
 
 type ReceivingHandler struct {
@@ -43,6 +44,13 @@ func (h ReceivingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	p, err := h.repo.FindByKey(context.Background(), keys[0])
 	if err != nil {
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == http.StatusNotFound {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+		}
+
 		h.logger.Log("can't load port", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -55,6 +63,6 @@ func (h ReceivingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Write(b)
-	w.WriteHeader(http.StatusOK)
 }

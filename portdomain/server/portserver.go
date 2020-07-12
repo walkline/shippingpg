@@ -2,15 +2,14 @@ package server
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"google.golang.org/grpc/status"
 
 	"github.com/walkline/shippingpg/portdomain"
 	"github.com/walkline/shippingpg/portdomain/server/pb"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type PortServiceServer struct {
@@ -46,7 +45,7 @@ func (s PortServiceServer) Store(ctx context.Context, p *pb.Port) (*pb.Empty, er
 		Code:     p.GetCode(),
 		Regions:  p.GetRegions(),
 		Alias:    p.GetAlias(),
-		Unlocs:   p.GetAlias(),
+		Unlocs:   p.GetUnlocs(),
 	}
 
 	if p.GetCoordinates() != nil {
@@ -64,6 +63,40 @@ func (s PortServiceServer) Store(ctx context.Context, p *pb.Port) (*pb.Empty, er
 	return new(pb.Empty), nil
 }
 
-func (PortServiceServer) FindByID(context.Context, *pb.PortID) (*pb.Port, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SavePort not implemented")
+func (s PortServiceServer) FindByID(ctx context.Context, id *pb.PortID) (*pb.Port, error) {
+	defer func(t time.Time) {
+		s.logger.Log(
+			"action", "searching",
+			"port_id", id.GetID(),
+			"took", time.Since(t),
+		)
+	}(time.Now())
+
+	p, err := s.repo.FindByID(ctx, portdomain.PortID(id.GetID()))
+	if err != nil {
+		if err == portdomain.ErrUnkPort {
+			return nil, status.Error(http.StatusNotFound, err.Error())
+		}
+
+		return nil, err
+	}
+
+	port := &pb.Port{
+		ID:       string(p.ID),
+		Name:     p.Name,
+		Country:  p.Country,
+		City:     p.City,
+		Province: p.Province,
+		Timezone: p.Timezone,
+		Code:     p.Code,
+		Regions:  p.Regions,
+		Alias:    p.Alias,
+		Unlocs:   p.Unlocs,
+		Coordinates: &pb.Geo2DPoint{
+			Lati:  p.Coordinates.Lati,
+			Longi: p.Coordinates.Longi,
+		},
+	}
+
+	return port, nil
 }

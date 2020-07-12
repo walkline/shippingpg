@@ -25,6 +25,7 @@ type portJSON struct {
 	City        string        `json:"city"`
 	Province    string        `json:"province"`
 	Code        string        `json:"code"`
+	Timezone    string        `json:"timezone"`
 	Alias       []string      `json:"alias"`
 	Regions     []string      `json:"regions"`
 	Unlocs      []string      `json:"unlocs"`
@@ -50,6 +51,7 @@ func (r *KVRepository) Store(ctx context.Context, kv *clientapi.KeyValue) error 
 		Country:  portjson.Country,
 		City:     portjson.City,
 		Code:     portjson.Code,
+		Timezone: portjson.Timezone,
 		Alias:    portjson.Alias,
 		Regions:  portjson.Regions,
 		Unlocs:   portjson.Unlocs,
@@ -79,6 +81,7 @@ func (r *KVRepository) FindByKey(ctx context.Context, key string) (*clientapi.Ke
 		Country:  resp.Country,
 		City:     resp.City,
 		Code:     resp.Code,
+		Timezone: resp.Timezone,
 		Alias:    resp.Alias,
 		Regions:  resp.Regions,
 		Unlocs:   resp.Unlocs,
