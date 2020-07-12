@@ -2,6 +2,9 @@ version: "3.8"
 services:
   clientapi:
     build: ./clientapi
+    environment:
+      - PORT_GRPC_ADDR=portdomainservice:6969
+      - HTTP_PORT=8080
     ports:
       - "8080:8080"
     depends_on:
@@ -9,5 +12,7 @@ services:
 
   portdomainservice:
     build: ./portdomain
+    environment:
+      - GRPC_PORT=6969
     ports:
       - "6969:6969"

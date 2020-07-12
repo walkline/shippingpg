@@ -17,7 +17,7 @@ import (
 
 func main() {
 	// TODO: rewrite to config loader
-	port := "8080"
+	port := "6969"
 	if p := os.Getenv("GRPC_PORT"); len(p) > 0 {
 		port = p
 	}

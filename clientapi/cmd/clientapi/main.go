@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -9,9 +10,11 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/walkline/shippingpg/clientapi/inmem"
 	"github.com/walkline/shippingpg/clientapi/kvimporting/json"
+	"github.com/walkline/shippingpg/clientapi/port"
+	"github.com/walkline/shippingpg/clientapi/port/pb"
 	"github.com/walkline/shippingpg/clientapi/server"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -21,9 +24,17 @@ func main() {
 		port = p
 	}
 
+	portGRPCAddr := "localhsot:6969"
+	if p := os.Getenv("PORT_GRPC_ADDR"); len(p) > 0 {
+		portGRPCAddr = p
+	}
+
 	var logger log.Logger
 	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+
+	conn, portClient := portGRPCClient(portGRPCAddr, logger)
+	defer conn.Close()
 
 	// handling graceful shutdown
 	c := make(chan os.Signal, 1)
@@ -36,15 +47,15 @@ func main() {
 		cancel()
 	}()
 
-	if err := serve(ctx, port, logger); err != nil {
+	if err := serve(ctx, port, logger, portClient); err != nil {
 		logger.Log("failed to serve:", err)
 	}
 }
 
-func serve(ctx context.Context, port string, logger log.Logger) error {
-	portsRepo := inmem.NewKeyValueRepo()
+func serve(ctx context.Context, p string, logger log.Logger, portClient pb.PortDomainServiceClient) error {
+	portsRepo := port.NewKVRepository(portClient)
 	srv := server.NewHTTPServer(
-		":"+port,
+		":"+p,
 		log.With(logger, "module", "http"),
 		json.NewReaderImporter(portsRepo),
 		portsRepo,
@@ -79,4 +90,14 @@ func serve(ctx context.Context, port string, logger log.Logger) error {
 	}
 
 	return err
+}
+
+func portGRPCClient(addr string, logger log.Logger) (*grpc.ClientConn, pb.PortDomainServiceClient) {
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	if err != nil {
+		err := fmt.Sprintf("fail to dial: %s", err.Error())
+		logger.Log("grpc_dial", err)
+		panic(err)
+	}
+	return conn, pb.NewPortDomainServiceClient(conn)
 }
