@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = "pb;pb";
+
+service PortDomainService {
+	rpc Store(Port) returns (Empty) {}
+	rpc FindByID(PortID) returns (Port) {}
+}
+
+message PortID {
+	string ID = 1;
+}
+
+message Geo2DPoint {
+	string lati = 1;
+	string longi = 2;
+}
+
+message Port {
+	string ID = 1;
+	string name = 2;
+	string country = 3;
+	string city = 4;
+	string province = 5;
+	string timezone = 6;
+	string code = 7;
+	Geo2DPoint coordinates = 8;
+	repeated string regions = 9;
+	repeated string alias = 10;
+	repeated string unlocs = 11;
+}
+
+message Empty {}

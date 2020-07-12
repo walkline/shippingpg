@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  clientapi:
+    build: ./clientapi
+    ports:
+      - "8080:8080"
+    depends_on:
+      - portdomainservice
+
+  portdomainservice:
+    build: ./portdomain
+    ports:
+      - "6969:6969"
